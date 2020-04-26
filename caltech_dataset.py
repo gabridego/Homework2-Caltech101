@@ -6,6 +6,20 @@ import os
 import os.path
 import sys
 
+def make_dataset(directory, class_to_idx, split_file):
+    instances = []
+    keys = class_to_idx.keys()
+    with open(split_file) as f:
+        split_paths = [line.rstrip() for line in f]
+
+    for path in split_paths:
+        full_path = os.path.join(directory, path)
+        target_class = path.split('/')[0]
+        if os.path.exists(full_path) and target_class in keys:
+            item = pil_loader(full_path), class_to_idx[target_class]
+            instances.append(item)
+
+    return instances
 
 def pil_loader(path):
     # open path as file to avoid ResourceWarning (https://github.com/python-pillow/Pillow/issues/835)
@@ -28,7 +42,34 @@ class Caltech(VisionDataset):
         - You should provide a way for the __getitem__ method to access the image-label pair
           through the index
         - Labels should start from 0, so for Caltech you will have lables 0...100 (excluding the background class) 
+
+        Based on ImageFolder dataset (https://github.com/pytorch/vision/blob/master/torchvision/datasets/folder.py)
         '''
+        classes, class_to_idx = self._find_classes(self.root)
+        samples = make_dataset(self.root, class_to_idx, os.path.join(self.root, '..', self.split + '.txt'))
+
+        if len(samples) == 0:
+            raise (RuntimeError("Found 0 files in subfolders of: " + self.root))
+
+        self.classes = classes
+        self.class_to_idx = class_to_idx
+        self.samples = samples
+        self.targets = [s[1] for s in samples]
+
+    def _find_classes(self, dir):
+        """
+        Finds the class folders in a dataset.
+        Args:
+            dir (string): Root directory path.
+        Returns:
+            tuple: (classes, class_to_idx) where classes are relative to (dir), and class_to_idx is a dictionary.
+        Ensures:
+            No class is a subdirectory of another.
+        """
+        classes = [d.name for d in os.scandir(dir) if d.is_dir() and not d.name.lower().startswith('background')]
+        classes.sort()
+        class_to_idx = {classes[i]: i for i in range(len(classes))}
+        return classes, class_to_idx
 
     def __getitem__(self, index):
         '''
@@ -40,9 +81,9 @@ class Caltech(VisionDataset):
             tuple: (sample, target) where target is class_index of the target class.
         '''
 
-        image, label = ... # Provide a way to access image and label via index
-                           # Image should be a PIL Image
-                           # label can be int
+        image, label = self.samples[index]  # Provide a way to access image and label via index
+                                            # Image should be a PIL Image
+                                            # label can be int
 
         # Applies preprocessing when accessing the image
         if self.transform is not None:
@@ -55,5 +96,5 @@ class Caltech(VisionDataset):
         The __len__ method returns the length of the dataset
         It is mandatory, as this is used by several other components
         '''
-        length = ... # Provide a way to get the length (number of elements) of the dataset
+        length = len(self.samples)  # Provide a way to get the length (number of elements) of the dataset
         return length
