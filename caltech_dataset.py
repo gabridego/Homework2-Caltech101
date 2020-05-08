@@ -45,7 +45,7 @@ class Caltech(VisionDataset):
 
         Based on ImageFolder dataset (https://github.com/pytorch/vision/blob/master/torchvision/datasets/folder.py)
         '''
-        classes, class_to_idx = self._find_classes(self.root)
+        classes, class_to_idx, idx_to_class = self._find_classes(self.root)
         samples = make_dataset(self.root, class_to_idx, os.path.join(self.root, '..', self.split + '.txt'))
 
         if len(samples) == 0:
@@ -53,6 +53,7 @@ class Caltech(VisionDataset):
 
         self.classes = classes
         self.class_to_idx = class_to_idx
+        self.idx_to_class = idx_to_class
         self.samples = samples
         self.targets = [s[1] for s in samples]
 
@@ -63,6 +64,9 @@ class Caltech(VisionDataset):
                 labels[t] = []
             labels[t].append(i)
         return labels
+
+      def get_class_name(self, i):
+        return idx_to_class[i]
 
     def _find_classes(self, dir):
         """
@@ -76,8 +80,10 @@ class Caltech(VisionDataset):
         """
         classes = [d.name for d in os.scandir(dir) if d.is_dir() and not d.name.lower().startswith('background')]
         classes.sort()
-        class_to_idx = {classes[i]: i for i in range(len(classes))}
-        return classes, class_to_idx
+        for i in range(len(classes)):
+          class_to_idx = {classes[i]: i}
+          idx_to_class = {i: classes[i]}
+        return classes, class_to_idx, idx_to_class
 
     def __getitem__(self, index):
         '''
