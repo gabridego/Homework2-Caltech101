@@ -65,8 +65,8 @@ class Caltech(VisionDataset):
             labels[t].append(i)
         return labels
 
-      def get_class_name(self, i):
-        return idx_to_class[i]
+    def get_classes(self):
+        return self.idx_to_class
 
     def _find_classes(self, dir):
         """
@@ -80,9 +80,11 @@ class Caltech(VisionDataset):
         """
         classes = [d.name for d in os.scandir(dir) if d.is_dir() and not d.name.lower().startswith('background')]
         classes.sort()
+        class_to_idx = {}
+        idx_to_class = {}
         for i in range(len(classes)):
-          class_to_idx = {classes[i]: i}
-          idx_to_class = {i: classes[i]}
+          class_to_idx[classes[i]] = i
+          idx_to_class[i] = classes[i]
         return classes, class_to_idx, idx_to_class
 
     def __getitem__(self, index):
